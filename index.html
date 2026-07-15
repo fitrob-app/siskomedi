@@ -184,12 +184,12 @@
                                         <th class="p-4">Komputer</th>
                                         <th class="p-4">NIP Pengguna</th>
                                         <th class="p-4">Nama Pengguna</th>
-                                        <th class="p-4">Acara</th>
+                                        <th class="p-4">Acara / Keterangan</th>
                                         <th class="p-4">Produser</th>
                                         <th class="p-4">Pengarah Acara</th>
                                         <th class="p-4">Tanggal Tayang</th>
                                         <th class="p-4 text-center">Durasi</th>
-                                        <th class="p-4">Catatan / Kendala / Tindakan</th>
+                                        <th class="p-4">Catatan / Tindakan</th>
                                     </tr>
                                 </thead>
                                 <tbody id="historyTableBody" class="divide-y divide-slate-150 text-sm text-slate-700">
@@ -533,8 +533,8 @@
     // ==========================================
     // KONFIGURASI APLIKASI
     // ==========================================
-    const IS_PREVIEW = false; // Set default true untuk Canvas
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbzTmcL-jqCvJpZsVWpPbviiaR9JB1uSFYGUko-pvaDiG7CAlEoTguBqyljgzZdcXAsX/exec";
+    const IS_PREVIEW = true; // Set default true untuk Canvas
+    const GAS_URL = "URL_DEPLOY_GAS_ANDA_DISINI";
 
     // STATE MANAGEMENT
     let currentUser = null;
@@ -550,7 +550,7 @@
         { nip: "3333", nama: "Pak Kadiv Teknik", pass: "edudigital", role: "Kepala Teknik" }
     ];
     
-    let dummyComputers = [
+        let dummyComputers = [
         { id: "PC-1", nama: "PC-1 (Dell)", spek: "M2 Ultra, 128GB", tahun: "2021", lokasi: "Ruang Edit-1", status: "Tersedia", pengguna: "", waktu_mulai: "", acara: "", produser: "", pa: "", tayang: "", durasi: "" },
         { id: "PC-2", nama: "PC-2 (MSI)", spek: "i9, RTX, RAM 32GB", tahun: "2022", lokasi: "Ruang Edit-1", status: "Tersedia", pengguna: "", waktu_mulai: "", acara: "", produser: "", pa: "", tayang: "", durasi: "" },
         { id: "PC-3", nama: "PC-3 (Dell)", spek: "i9 12th RTX 4060, RAM 32GB", tahun: "2021", lokasi: "Ruang Edit-1", status: "Tersedia", pengguna: "", waktu_mulai: "", acara: "", produser: "", pa: "", tayang: "", durasi: "" },
@@ -559,12 +559,12 @@
         { id: "PC-6", nama: "PC-6 (Legion)", spek: "i9 12th RTX 4060, RAM 32GB", tahun: "2022", lokasi: "Ruang Edit-2", status: "Tersedia", pengguna: "", waktu_mulai: "", acara: "", produser: "", pa: "", tayang: "", durasi: "" },
         { id: "PC-7", nama: "PC-7 (Legion)", spek: "i9 12th RTX 4060, RAM 32GB", tahun: "2026", lokasi: "Ruang Edit-2", status: "Tersedia", pengguna: "", waktu_mulai: "", acara: "", produser: "", pa: "", tayang: "", durasi: "" },
         { id: "PC-8", nama: "PC-8 (Legion)", spek: "i9 12th RTX 4060, RAM 32GB", tahun: "2025", lokasi: "Ruang Edit-2", status: "Tersedia", pengguna: "", waktu_mulai: "", acara: "", produser: "", pa: "", tayang: "", durasi: "" },
-        { id: "PC-9", nama: "PC-9 (VO)", spek: "i9 12th RTX 4060, RAM 32GB", tahun: "2026", lokasi: "Ruang VO", status: "Maintenance", pengguna: "1111", waktu_mulai: "2026-07-15T01:30:00.000Z", acara: "MAINTENANCE", produser: "-", pa: "-", tayang: "-", durasi: "Monitor kedip-kedip" }
+        { id: "PC-9", nama: "PC-9 (VO)", spek: "i9 12th RTX 4060, RAM 32GB", tahun: "2026", lokasi: "Ruang VO", status: "Maintenance", pengguna: "1111", waktu_mulai: "2026-07-15T01:30:00.000Z", acara: "MAINTENANCE: Monitor kedip-kedip", produser: "-", pa: "-", tayang: "-", durasi: "-" }
     ];
 
     let dummyHistory = [
         { waktu_mulai: "2026-07-14T02:00:00.000Z", waktu_selesai: "2026-07-14T05:00:00.000Z", id_komputer: "PC-4", nip: "2222", nama_pengguna: "Fitro Borney", acara: "Sekolahku Keren - Eps 1", produser: "Siti", pa: "Andi", tayang: "2026-07-15", durasi_paket: "30", catatan: "Aman terkendali" },
-        { waktu_mulai: "2026-07-13T04:00:00.000Z", waktu_selesai: "2026-07-13T06:30:00.000Z", id_komputer: "PC-9", nip: "1111", nama_pengguna: "Super Admin", acara: "MAINTENANCE", produser: "-", pa: "-", tayang: "-", durasi_paket: "-", catatan: "Keluhan: Windows Error | Tindakan: Install ulang OS, lancar." }
+        { waktu_mulai: "2026-07-13T04:00:00.000Z", waktu_selesai: "2026-07-13T06:30:00.000Z", id_komputer: "PC-9", nip: "1111", nama_pengguna: "Super Admin", acara: "MAINTENANCE: Windows Error", produser: "-", pa: "-", tayang: "-", durasi_paket: "-", catatan: "Install ulang OS, lancar." }
     ];
 
     // ==========================================
@@ -836,18 +836,18 @@
                     dummyComputers[idx].status = "Maintenance";
                     dummyComputers[idx].pengguna = payload.nip;
                     dummyComputers[idx].waktu_mulai = payload.waktu;
-                    dummyComputers[idx].acara = "MAINTENANCE";
+                    dummyComputers[idx].acara = "MAINTENANCE: " + payload.keluhan;
                     dummyComputers[idx].produser = "-";
                     dummyComputers[idx].pa = "-";
                     dummyComputers[idx].tayang = "-";
-                    dummyComputers[idx].durasi = payload.keluhan; 
+                    dummyComputers[idx].durasi = "-"; 
                     resolve(true);
                 }
                 else if (action === 'endMaintenance') {
                     const c = dummyComputers.find(c => c.id === payload.id);
                     const userFind = dummyUsers.find(u => u.nip === c.pengguna);
                     dummyHistory.push({
-                        waktu_mulai: c.waktu_mulai, waktu_selesai: payload.waktu, id_komputer: c.id, nip: c.pengguna, nama_pengguna: userFind ? userFind.nama : "Tidak Dikenal", acara: "MAINTENANCE", produser: "-", pa: "-", tayang: "-", durasi_paket: "-", catatan: "Keluhan: " + c.durasi + " | Tindakan: " + payload.tindakan
+                        waktu_mulai: c.waktu_mulai, waktu_selesai: payload.waktu, id_komputer: c.id, nip: c.pengguna, nama_pengguna: userFind ? userFind.nama : "Tidak Dikenal", acara: c.acara, produser: "-", pa: "-", tayang: "-", durasi_paket: "-", catatan: payload.tindakan
                     });
                     c.status = "Tersedia"; c.pengguna = ""; c.waktu_mulai = ""; c.acara = ""; c.produser = ""; c.pa = ""; c.tayang = ""; c.durasi = "";
                     resolve(true);
@@ -1093,10 +1093,13 @@
                     statusBadge = `<span class="px-3 py-1 rounded-full border text-xs font-semibold flex items-center justify-center gap-1.5 ${statusColor}"><i class="fa-solid fa-screwdriver-wrench"></i> Sedang Perbaikan</span>`;
                     
                     const namaTeknisi = userMap[comp.pengguna] || comp.pengguna || '-';
+                    // MENGAMBIL KELUHAN DARI NAMA ACARA (Hilangkan kata "MAINTENANCE: ")
+                    const keluhanText = comp.acara.replace("MAINTENANCE: ", "");
+
                     let details = `<div class="mt-3 text-xs text-amber-700 bg-amber-50/50 p-2.5 rounded-lg border border-amber-100 space-y-1.5">
                         <p class="flex justify-between"><span>Teknisi:</span><span class="font-bold text-amber-800 text-right truncate w-32" title="${namaTeknisi}">${namaTeknisi}</span></p>
                         <p class="flex justify-between"><span>Mulai:</span><span class="font-semibold text-amber-700">${formatToWITA(comp.waktu_mulai)}</span></p>
-                        <p class="flex justify-between"><span>Keluhan:</span><span class="font-bold text-amber-800 text-right truncate w-32" title="${comp.durasi}">${comp.durasi || '-'}</span></p>
+                        <p class="flex justify-between"><span>Keluhan:</span><span class="font-bold text-amber-800 text-right truncate w-32" title="${keluhanText}">${keluhanText || '-'}</span></p>
                     </div>`;
 
                     if (currentUser.role === 'Admin' || currentUser.role === 'Kepala Teknik') {
@@ -1159,25 +1162,36 @@
         displayData.sort((a, b) => b.waktu_mulai.localeCompare(a.waktu_mulai));
 
         displayData.forEach(h => {
-            const isMaint = h.acara === 'MAINTENANCE';
+            const isMaint = h.acara && h.acara.startsWith('MAINTENANCE');
             const rowClass = isMaint ? 'bg-red-50/50 text-red-600' : 'hover:bg-slate-50/50';
             const textClass = isMaint ? 'font-bold text-red-600' : 'text-slate-700';
+            
+            // Mencari info komputer untuk history
+            const compInfo = dataComputers.find(c => c.id === h.id_komputer) || dummyComputers.find(c => c.id === h.id_komputer);
+            const compNameStr = compInfo ? `<br><span class="text-xs font-normal text-slate-500">${compInfo.nama}<br>${compInfo.lokasi}</span>` : '';
+
+            // Format kolom acara untuk maintenance
+            let acaraTampil = h.acara;
+            if(isMaint){
+                const keluhan = h.acara.replace("MAINTENANCE: ", "");
+                acaraTampil = `<span class="px-2 py-0.5 rounded bg-red-100 text-red-700 text-xs font-black">MAINTENANCE (PERBAIKAN)</span><br><span class="text-xs italic text-red-600 mt-1 block">Keluhan: ${keluhan}</span>`;
+            }
             
             tbody.innerHTML += `
                 <tr class="${rowClass}">
                     <td class="p-4 border-b border-slate-100">${formatToWITA(h.waktu_mulai)}</td>
                     <td class="p-4 border-b border-slate-100">${formatToWITA(h.waktu_selesai)}</td>
-                    <td class="p-4 border-b border-slate-100 font-bold ${textClass}">${h.id_komputer}</td>
+                    <td class="p-4 border-b border-slate-100 font-bold ${textClass}">${h.id_komputer}${compNameStr}</td>
                     <td class="p-4 border-b border-slate-100 ${textClass}">${h.nip}</td>
                     <td class="p-4 border-b border-slate-100 font-bold ${textClass}">${h.nama_pengguna || '-'}</td>
-                    <td class="p-4 border-b border-slate-100 font-bold">
-                        ${isMaint ? '<span class="px-2 py-0.5 rounded bg-red-100 text-red-700 text-xs font-black">MAINTENANCE</span>' : h.acara}
+                    <td class="p-4 border-b border-slate-100 font-bold max-w-xs truncate whitespace-normal">
+                        ${acaraTampil}
                     </td>
                     <td class="p-4 border-b border-slate-100">${h.produser || '-'}</td>
                     <td class="p-4 border-b border-slate-100">${h.pa || '-'}</td>
                     <td class="p-4 border-b border-slate-100">${formatDateIndo(h.tayang)}</td>
                     <td class="p-4 border-b border-slate-100 text-center font-bold">${h.durasi_paket && h.durasi_paket !== '-' ? h.durasi_paket + " Min" : '-'}</td>
-                    <td class="p-4 border-b border-slate-100 italic truncate max-w-xs" title="${h.catatan || ''}">${h.catatan || '-'}</td>
+                    <td class="p-4 border-b border-slate-100 italic truncate max-w-xs whitespace-normal" title="${h.catatan || ''}">${h.catatan || '-'}</td>
                 </tr>
             `;
         });
@@ -1390,18 +1404,28 @@
             tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">Tidak ada data penggunaan pada bulan ini.</td></tr>`;
         } else {
             filtered.forEach(h => {
-                const isMaint = h.acara === 'MAINTENANCE';
+                const isMaint = h.acara && h.acara.startsWith('MAINTENANCE');
                 const rowStyle = isMaint ? 'style="background-color: #fef2f2; color: #b91c1c;"' : '';
                 const fontClass = isMaint ? 'font-bold text-red-600' : 'text-slate-700';
                 
+                // Mencari info komputer untuk report
+                const compInfo = dataComputers.find(c => c.id === h.id_komputer) || dummyComputers.find(c => c.id === h.id_komputer);
+                const compNameStr = compInfo ? `<br><span style="font-size: 10px; font-weight: normal; color: #64748b;">${compInfo.nama}<br>${compInfo.lokasi}</span>` : '';
+
+                // Format kolom acara untuk maintenance di report
+                let acaraTampil = `<b class="${fontClass}">${h.acara}</b><br><span class="text-xs text-slate-500">PA: ${h.pa || '-'} | Prod: ${h.produser || '-'}</span>`;
+                if(isMaint){
+                    const keluhan = h.acara.replace("MAINTENANCE: ", "");
+                    acaraTampil = `<b class="text-red-700">MAINTENANCE (PERBAIKAN)</b><br><span style="font-size:11px; font-style:italic;" class="text-red-600">Keluhan: ${keluhan}</span>`;
+                }
+
                 tbody.innerHTML += `
                     <tr ${rowStyle}>
                         <td class="border border-slate-300 p-2">${formatToWITA(h.waktu_mulai)} <br>s/d<br> ${formatToWITA(h.waktu_selesai)}</td>
-                        <td class="border border-slate-300 p-2 font-bold">${h.id_komputer}</td>
-                        <td class="border border-slate-300 p-2">${h.nip} (${h.nama_pengguna || 'N/A'})</td>
+                        <td class="border border-slate-300 p-2 font-bold">${h.id_komputer}${compNameStr}</td>
+                        <td class="border border-slate-300 p-2">${h.nip} <br> <span style="font-size:11px">(${h.nama_pengguna || 'N/A'})</span></td>
                         <td class="border border-slate-300 p-2">
-                           ${isMaint ? '<b class="text-red-700">MAINTENANCE (PERBAIKAN)</b>' : `<b class="${fontClass}">${h.acara}</b>`}
-                           ${isMaint ? '' : `<br><span class="text-xs text-slate-500">PA: ${h.pa || '-'} | Prod: ${h.produser || '-'}</span>`}
+                           ${acaraTampil}
                         </td>
                         <td class="border border-slate-300 p-2 text-center font-bold">${h.durasi_paket && h.durasi_paket !== '-' ? h.durasi_paket + "'" : '-'}</td>
                         <td class="border border-slate-300 p-2 italic">${h.catatan || '-'}</td>
