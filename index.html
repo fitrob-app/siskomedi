@@ -1529,31 +1529,70 @@ function exportToPDF() {
 
         showLoader("Menyiapkan file PDF...");
 
-        /* 
-           FIX BUG HALAMAN KOSONG (BLANK PAGE):
-           1. Jangan gunakan left -9999px. Taruh di pojok kiri atas (0,0) tapi sembunyikan dengan z-index -9999.
-           2. Batasi lebar clone di 794px agar proporsional dengan kertas Portrait A4.
-           3. Tambahkan setTimeout agar DOM sempat melakukan kalkulasi ukuran (reflow/repaint).
-        */
-        const clone = printArea.cloneNode(true);
-        clone.id = "pdf-export-clone";
-        clone.style.position = 'absolute';
-        clone.style.left = '0';
-        clone.style.top = '0';
-        clone.style.zIndex = '-9999';
-        clone.style.width = '794px'; // Lebar optimal portrait agar tabel muat sempurna
-        clone.style.height = 'max-content';
-        clone.style.backgroundColor = '#ffffff';
-        clone.style.color = '#000000';
-        clone.classList.remove('hidden', 'shadow', 'border', 'rounded-xl');
-        document.body.appendChild(clone);
+        // Buat atau bersihkan Iframe terisolasi khusus untuk merender PDF
+        let pdfFrame = document.getElementById('hiddenPdfFrame');
+        if (pdfFrame) {
+            document.body.removeChild(pdfFrame);
+        }
+        
+        pdfFrame = document.createElement('iframe');
+        pdfFrame.id = 'hiddenPdfFrame';
+        pdfFrame.style.position = 'fixed';
+        pdfFrame.style.left = '0';
+        pdfFrame.style.top = '0';
+        pdfFrame.style.width = '800px'; // Set lebar layout lurus untuk Portrait A4
+        pdfFrame.style.height = '1200px';
+        pdfFrame.style.visibility = 'hidden';
+        pdfFrame.style.zIndex = '-9999';
+        document.body.appendChild(pdfFrame);
+
+        const frameDoc = pdfFrame.contentWindow.document;
+        const printContent = printArea.innerHTML;
+        
+        // Tulis struktur dokumen bersih tanpa gangguan CSS bawaan aplikasi
+        frameDoc.open();
+        frameDoc.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Export PDF</title>
+                <style>
+                    body { font-family: 'Segoe UI', Arial, sans-serif; color: #000; margin: 0; padding: 20px; background: #ffffff; }
+                    .text-center { text-align: center; }
+                    .border-b { border-bottom: 2px solid #333; margin-bottom: 20px; padding-bottom: 10px; }
+                    h2 { font-size: 18px; text-transform: uppercase; margin: 0 0 5px 0; }
+                    p { margin: 0 0 5px 0; color: #444; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 11px; }
+                    th, td { border: 1px solid #777; padding: 6px 8px; text-align: left; vertical-align: top; }
+                    th { background-color: #f3f4f6; font-weight: bold; }
+                    .mt-12 { margin-top: 50px; }
+                    .flex { display: flex; }
+                    .justify-end { justify-content: flex-end; }
+                    .mb-16 { margin-bottom: 80px; }
+                    .border-t { border-top: 1px solid #000; }
+                    .pt-2 { padding-top: 5px; }
+                    .font-bold { font-weight: bold; }
+                    .text-red-700 { color: #b91c1c !important; }
+                    .min-w-200 { min-width: 200px; }
+                    b { font-weight: bold; }
+                    .italic { font-style: italic; }
+                </style>
+            </head>
+            <body>
+                <div id="pdf-container-target">
+                    ${printContent}
+                </div>
+            </body>
+            </html>
+        `);
+        frameDoc.close();
 
         const monthSelect = document.getElementById('reportMonthSelect').value;
         const yearSelect = document.getElementById('reportYearSelect').value;
         const fileName = `Laporan_Fasilitas_Editing_${yearSelect}_${monthSelect}.pdf`;
 
         const opt = {
-            margin:       [10, 10, 10, 10], // Margin aman sekeliling kertas
+            margin:       [15, 10, 15, 10], // Margin portrait ideal
             filename:     fileName,
             image:        { type: 'jpeg', quality: 0.98 },
             html2canvas:  { 
@@ -1562,24 +1601,26 @@ function exportToPDF() {
                 logging: false,
                 scrollX: 0,
                 scrollY: 0,
-                windowWidth: 794 // Paksa kalkulasi lebar canvas agar sesuai layout Portrait
+                windowWidth: 800 // Kunci kalkulasi lebar canvas di resolusi optimal
             },
-            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' } // ORIENTASI PORTRAIT
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' } // Orientasi Tegak
         };
 
-        // Delay 300ms untuk render DOM yang sempurna sebelum dicapture
+        // Jeda 400ms untuk memastikan DOM Iframe siap dibaca sempurna sebelum diekspor
         setTimeout(() => {
-            html2pdf().set(opt).from(clone).save().then(() => {
-                if(document.body.contains(clone)) document.body.removeChild(clone);
+            const pdfTargetElement = frameDoc.getElementById('pdf-container-target');
+            
+            html2pdf().set(opt).from(pdfTargetElement).save().then(() => {
+                if(document.body.contains(pdfFrame)) document.body.removeChild(pdfFrame);
                 hideLoader();
                 showToast("Laporan berhasil diunduh sebagai PDF!");
             }).catch(err => {
-                if(document.body.contains(clone)) document.body.removeChild(clone);
+                if(document.body.contains(pdfFrame)) document.body.removeChild(pdfFrame);
                 hideLoader();
                 showToast("Gagal membuat PDF. Coba lagi.", true);
                 console.error(err);
             });
-        }, 300);
+        }, 400);
     }
 </script>
 </body>
