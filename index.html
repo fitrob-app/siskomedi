@@ -1520,7 +1520,7 @@
     // ==========================================
     // EXPORT PDF DIRECT (Bypass Scroll/Offset Bug)
     // ==========================================
-    function exportToPDF() {
+     function exportToPDF() {
         const printArea = document.getElementById('reportPrintArea');
         if(printArea.classList.contains('hidden') || document.getElementById('reportTableBody').innerHTML === '') {
             showToast("Silakan tampilkan data laporan terlebih dahulu sebelum di-export", true);
@@ -1529,23 +1529,15 @@
 
         showLoader("Menyiapkan file PDF...");
 
-        // Kloning elemen diletakkan di bawah layer UI (z-index negatif), BUKAN off-screen (-9999px)
-        // Ini memastikan browser tetap melakukan render piksel yang dibutuhkan html2canvas
-        const tempContainer = document.createElement('div');
-        tempContainer.style.position = 'absolute';
-        tempContainer.style.top = '0';
-        tempContainer.style.left = '0';
-        tempContainer.style.width = '1000px'; // Set lebar tetap untuk mencegah distorsi layout
-        tempContainer.style.zIndex = '-50'; // Sembunyikan di balik app-container (z-index: 99999)
-        tempContainer.style.backgroundColor = '#ffffff'; // Latar putih solid
-        
+        // Kloning elemen (Diposisikan di luar viewport agar kalkulasi html2canvas 100% lurus bebas glitch)
         const clone = printArea.cloneNode(true);
         clone.classList.remove('hidden');
-        // Hapus style card/bayangan agar hasil PDF terlihat murni seperti dokumen fisik
-        clone.classList.remove('rounded-xl', 'shadow', 'border', 'border-slate-200');
-        
-        tempContainer.appendChild(clone);
-        document.body.appendChild(tempContainer);
+        clone.style.position = 'absolute';
+        clone.style.top = '0';
+        clone.style.left = '-9999px';
+        clone.style.width = '800px'; 
+        clone.style.display = 'block';
+        document.body.appendChild(clone);
 
         const monthSelect = document.getElementById('reportMonthSelect').value;
         const yearSelect = document.getElementById('reportYearSelect').value;
@@ -1559,25 +1551,23 @@
                 scale: 2, 
                 useCORS: true,
                 logging: false,
-                scrollY: 0,
-                scrollX: 0
+                scrollX: 0,
+                scrollY: 0
             },
-            // Orientasi diubah ke landscape agar tabel lebih leluasa dan tidak sempit
-            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' } 
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
 
-        html2pdf().set(opt).from(tempContainer).save().then(() => {
-            document.body.removeChild(tempContainer); // Bersihkan DOM setelah selesai
+        html2pdf().set(opt).from(clone).save().then(() => {
+            document.body.removeChild(clone);
             hideLoader();
             showToast("Laporan berhasil diunduh sebagai PDF!");
         }).catch(err => {
-            if(document.body.contains(tempContainer)) document.body.removeChild(tempContainer);
+            if(document.body.contains(clone)) document.body.removeChild(clone);
             hideLoader();
             showToast("Gagal membuat PDF. Coba lagi.", true);
             console.error(err);
         });
     }
-
 </script>
 </body>
 </html>
