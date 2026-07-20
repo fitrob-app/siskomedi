@@ -1520,7 +1520,7 @@
     // ==========================================
     // EXPORT PDF DIRECT (Bypass Scroll/Offset Bug)
     // ==========================================
-function exportToPDF() {
+ function exportToPDF() {
         const printArea = document.getElementById('reportPrintArea');
         if(printArea.classList.contains('hidden') || document.getElementById('reportTableBody').innerHTML === '') {
             showToast("Silakan tampilkan data laporan terlebih dahulu sebelum di-export", true);
@@ -1529,70 +1529,85 @@ function exportToPDF() {
 
         showLoader("Menyiapkan file PDF...");
 
-        // Buat atau bersihkan Iframe terisolasi khusus untuk merender PDF
-        let pdfFrame = document.getElementById('hiddenPdfFrame');
-        if (pdfFrame) {
-            document.body.removeChild(pdfFrame);
-        }
-        
-        pdfFrame = document.createElement('iframe');
-        pdfFrame.id = 'hiddenPdfFrame';
-        pdfFrame.style.position = 'fixed';
-        pdfFrame.style.left = '0';
-        pdfFrame.style.top = '0';
-        pdfFrame.style.width = '800px'; // Set lebar layout lurus untuk Portrait A4
-        pdfFrame.style.height = '1200px';
-        pdfFrame.style.visibility = 'hidden';
-        pdfFrame.style.zIndex = '-9999';
-        document.body.appendChild(pdfFrame);
+        const savedScrollX = window.scrollX;
+        const savedScrollY = window.scrollY;
+        window.scrollTo(0, 0); // Loncat ke koordinat awal agar tangkapan tidak terpotong kiri/atas
 
-        const frameDoc = pdfFrame.contentWindow.document;
-        const printContent = printArea.innerHTML;
-        
-        // Tulis struktur dokumen bersih tanpa gangguan CSS bawaan aplikasi
-        frameDoc.open();
-        frameDoc.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Export PDF</title>
-                <style>
-                    body { font-family: 'Segoe UI', Arial, sans-serif; color: #000; margin: 0; padding: 20px; background: #ffffff; }
-                    .text-center { text-align: center; }
-                    .border-b { border-bottom: 2px solid #333; margin-bottom: 20px; padding-bottom: 10px; }
-                    h2 { font-size: 18px; text-transform: uppercase; margin: 0 0 5px 0; }
-                    p { margin: 0 0 5px 0; color: #444; }
-                    table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 11px; }
-                    th, td { border: 1px solid #777; padding: 6px 8px; text-align: left; vertical-align: top; }
-                    th { background-color: #f3f4f6; font-weight: bold; }
-                    .mt-12 { margin-top: 50px; }
-                    .flex { display: flex; }
-                    .justify-end { justify-content: flex-end; }
-                    .mb-16 { margin-bottom: 80px; }
-                    .border-t { border-top: 1px solid #000; }
-                    .pt-2 { padding-top: 5px; }
-                    .font-bold { font-weight: bold; }
-                    .text-red-700 { color: #b91c1c !important; }
-                    .min-w-200 { min-width: 200px; }
-                    b { font-weight: bold; }
-                    .italic { font-style: italic; }
-                </style>
-            </head>
-            <body>
-                <div id="pdf-container-target">
-                    ${printContent}
-                </div>
-            </body>
-            </html>
-        `);
-        frameDoc.close();
+        // Bersihkan mesin rendering PDF lama jika ada
+        let renderContainer = document.getElementById('pdfRenderEngine');
+        if (renderContainer) {
+            renderContainer.remove();
+        }
+
+        renderContainer = document.createElement('div');
+        renderContainer.id = 'pdfRenderEngine';
+        renderContainer.style.position = 'absolute';
+        renderContainer.style.left = '0';
+        renderContainer.style.top = '0';
+        renderContainer.style.width = '794px'; // Kunci lebar mutlak portrait A4 (96 DPI)
+        renderContainer.style.backgroundColor = '#ffffff';
+        renderContainer.style.zIndex = '99999'; // Pastikan di layer teratas di bawah loading screen
+        renderContainer.style.boxSizing = 'border-box';
+        renderContainer.style.padding = '30px 40px'; // Margin kertas dalam
+
+        // Salin isi laporan ke dalam engine render baru
+        renderContainer.innerHTML = printArea.innerHTML;
+
+        const styleSheet = document.createElement('style');
+        styleSheet.innerText = `
+            #pdfRenderEngine {
+                font-family: 'Segoe UI', Arial, sans-serif !important;
+                color: #000000 !important;
+            }
+            #pdfRenderEngine .text-center { text-align: center !important; }
+            #pdfRenderEngine .border-b { border-bottom: 2px solid #333 !important; margin-bottom: 20px !important; padding-bottom: 10px !important; }
+            #pdfRenderEngine h2 { font-size: 18px !important; text-transform: uppercase !important; margin: 0 0 5px 0 !important; }
+            #pdfRenderEngine p { margin: 0 0 5px 0 !important; color: #444 !important; }
+            #pdfRenderEngine table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+                margin-top: 15px !important;
+                font-size: 10px !important;
+                table-layout: fixed !important; /* Paksa layout tabel statis agar tidak melebar */
+            }
+            #pdfRenderEngine th, #pdfRenderEngine td {
+                border: 1px solid #777777 !important;
+                padding: 6px 8px !important;
+                text-align: left !important;
+                vertical-align: top !important;
+                word-wrap: break-word !important;
+                overflow-wrap: break-word !important;
+                white-space: normal !important; /* Biarkan teks membungkus ke bawah */
+            }
+            #pdfRenderEngine th { background-color: #f3f4f6 !important; font-weight: bold !important; }
+            #pdfRenderEngine .mt-12 { margin-top: 50px !important; }
+            #pdfRenderEngine .flex { display: flex !important; }
+            #pdfRenderEngine .justify-end { justify-content: flex-end !important; }
+            #pdfRenderEngine .mb-16 { margin-bottom: 80px !important; }
+            #pdfRenderEngine .border-t { border-top: 1px solid #000000 !important; }
+            #pdfRenderEngine .pt-2 { padding-top: 5px !important; }
+            #pdfRenderEngine .font-bold { font-weight: bold !important; }
+            #pdfRenderEngine .min-w-200 { min-width: 200px !important; }
+            #pdfRenderEngine b { font-weight: bold !important; }
+            #pdfRenderEngine .italic { font-style: italic !important; }
+            
+            /* Pembagian persentase kolom untuk ukuran Portrait A4 */
+            #pdfRenderEngine th:nth-child(1), #pdfRenderEngine td:nth-child(1) { width: 14% !important; } /* Tgl/Waktu */
+            #pdfRenderEngine th:nth-child(2), #pdfRenderEngine td:nth-child(2) { width: 14% !important; } /* Komputer */
+            #pdfRenderEngine th:nth-child(3), #pdfRenderEngine td:nth-child(3) { width: 14% !important; } /* User (NIP) */
+            #pdfRenderEngine th:nth-child(4), #pdfRenderEngine td:nth-child(4) { width: 26% !important; } /* Acara */
+            #pdfRenderEngine th:nth-child(5), #pdfRenderEngine td:nth-child(5) { width: 10% !important; } /* Durasi */
+            #pdfRenderEngine th:nth-child(6), #pdfRenderEngine td:nth-child(6) { width: 22% !important; } /* Keterangan */
+        `;
+        renderContainer.appendChild(styleSheet);
+        document.body.appendChild(renderContainer);
 
         const monthSelect = document.getElementById('reportMonthSelect').value;
         const yearSelect = document.getElementById('reportYearSelect').value;
         const fileName = `Laporan_Fasilitas_Editing_${yearSelect}_${monthSelect}.pdf`;
 
         const opt = {
-            margin:       [15, 10, 15, 10], // Margin portrait ideal
+            margin:       [10, 10, 10, 10], // Margin aman atas-bawah-kiri-kanan (mm)
             filename:     fileName,
             image:        { type: 'jpeg', quality: 0.98 },
             html2canvas:  { 
@@ -1601,26 +1616,31 @@ function exportToPDF() {
                 logging: false,
                 scrollX: 0,
                 scrollY: 0,
-                windowWidth: 800 // Kunci kalkulasi lebar canvas di resolusi optimal
+                windowWidth: 794 // Kunci kalkulasi lebar canvas di resolusi optimal
             },
             jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' } // Orientasi Tegak
         };
 
-        // Jeda 400ms untuk memastikan DOM Iframe siap dibaca sempurna sebelum diekspor
         setTimeout(() => {
-            const pdfTargetElement = frameDoc.getElementById('pdf-container-target');
-            
-            html2pdf().set(opt).from(pdfTargetElement).save().then(() => {
-                if(document.body.contains(pdfFrame)) document.body.removeChild(pdfFrame);
+            html2pdf().set(opt).from(renderContainer).save().then(() => {
+                // Bersihkan DOM Container Sementara
+                if(document.body.contains(renderContainer)) {
+                    document.body.removeChild(renderContainer);
+                }
+                // Kembalikan posisi scroll pengguna ke tempat awal
+                window.scrollTo(savedScrollX, savedScrollY);
                 hideLoader();
                 showToast("Laporan berhasil diunduh sebagai PDF!");
             }).catch(err => {
-                if(document.body.contains(pdfFrame)) document.body.removeChild(pdfFrame);
+                if(document.body.contains(renderContainer)) {
+                    document.body.removeChild(renderContainer);
+                }
+                window.scrollTo(savedScrollX, savedScrollY);
                 hideLoader();
                 showToast("Gagal membuat PDF. Coba lagi.", true);
                 console.error(err);
             });
-        }, 400);
+        }, 400); // Delay jeda aman render DOM browser
     }
 </script>
 </body>
