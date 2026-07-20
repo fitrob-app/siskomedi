@@ -1520,58 +1520,66 @@
     // ==========================================
     // EXPORT PDF DIRECT (Bypass Scroll/Offset Bug)
     // ==========================================
-    function exportToPDF() {
+function exportToPDF() {
         const printArea = document.getElementById('reportPrintArea');
-        
-        // Validasi: Pastikan data sudah dimunculkan/ditampilkan sebelum di-export
-        if (printArea.classList.contains('hidden')) {
-            showToast("Silakan klik 'Tampilkan' laporan terlebih dahulu!", true);
+        if(printArea.classList.contains('hidden') || document.getElementById('reportTableBody').innerHTML === '') {
+            showToast("Silakan tampilkan data laporan terlebih dahulu sebelum di-export", true);
             return;
         }
 
-        showLoader("Menghasilkan dokumen PDF...");
-        
+        showLoader("Menyiapkan file PDF...");
+
         /* 
            FIX BUG HALAMAN KOSONG (BLANK PAGE):
-           Melakukan clone (copy) elemen report, menghapus class shadow/hidden, 
-           dan menempelkannya sementara langsung ke <body> dengan posisi absolut 
-           diluar layar agar html2canvas tidak terganggu oleh rule "overflow: hidden" parent-nya.
+           1. Jangan gunakan left -9999px. Taruh di pojok kiri atas (0,0) tapi sembunyikan dengan z-index -9999.
+           2. Batasi lebar clone di 794px agar proporsional dengan kertas Portrait A4.
+           3. Tambahkan setTimeout agar DOM sempat melakukan kalkulasi ukuran (reflow/repaint).
         */
         const clone = printArea.cloneNode(true);
+        clone.id = "pdf-export-clone";
         clone.style.position = 'absolute';
-        clone.style.left = '-9999px'; 
+        clone.style.left = '0';
         clone.style.top = '0';
-        clone.style.width = '1024px'; // Tetapkan lebar agar layout tidak rusak
-        clone.style.backgroundColor = 'white';
-        clone.style.color = 'black';
+        clone.style.zIndex = '-9999';
+        clone.style.width = '794px'; // Lebar optimal portrait agar tabel muat sempurna
+        clone.style.height = 'max-content';
+        clone.style.backgroundColor = '#ffffff';
+        clone.style.color = '#000000';
         clone.classList.remove('hidden', 'shadow', 'border', 'rounded-xl');
         document.body.appendChild(clone);
 
-        const month = document.getElementById('reportMonthSelect').value;
-        const year = document.getElementById('reportYearSelect').value;
-        const fileName = `Laporan_Siskomedi_${month}_${year}.pdf`;
+        const monthSelect = document.getElementById('reportMonthSelect').value;
+        const yearSelect = document.getElementById('reportYearSelect').value;
+        const fileName = `Laporan_Fasilitas_Editing_${yearSelect}_${monthSelect}.pdf`;
 
-        // Konfigurasi html2pdf
         const opt = {
-            margin:       0.5,
+            margin:       [10, 10, 10, 10], // Margin aman sekeliling kertas
             filename:     fileName,
             image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2, useCORS: true, windowWidth: 1024 }, 
-            jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
+            html2canvas:  { 
+                scale: 2, 
+                useCORS: true,
+                logging: false,
+                scrollX: 0,
+                scrollY: 0,
+                windowWidth: 794 // Paksa kalkulasi lebar canvas agar sesuai layout Portrait
+            },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' } // ORIENTASI PORTRAIT
         };
 
-        // Render element clone menjadi PDF
-        html2pdf().set(opt).from(clone).save().then(() => {
-            // Hapus elemen clone jika sudah selesai
-            document.body.removeChild(clone);
-            hideLoader();
-            showToast("PDF berhasil diunduh!");
-        }).catch(err => {
-            if(document.body.contains(clone)) document.body.removeChild(clone);
-            hideLoader();
-            showToast("Gagal mengekspor PDF", true);
-            console.error(err);
-        });
+        // Delay 300ms untuk render DOM yang sempurna sebelum dicapture
+        setTimeout(() => {
+            html2pdf().set(opt).from(clone).save().then(() => {
+                if(document.body.contains(clone)) document.body.removeChild(clone);
+                hideLoader();
+                showToast("Laporan berhasil diunduh sebagai PDF!");
+            }).catch(err => {
+                if(document.body.contains(clone)) document.body.removeChild(clone);
+                hideLoader();
+                showToast("Gagal membuat PDF. Coba lagi.", true);
+                console.error(err);
+            });
+        }, 300);
     }
 </script>
 </body>
