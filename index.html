@@ -1520,51 +1520,56 @@
     // ==========================================
     // EXPORT PDF DIRECT (Bypass Scroll/Offset Bug)
     // ==========================================
-     function exportToPDF() {
+    function exportToPDF() {
         const printArea = document.getElementById('reportPrintArea');
-        if(printArea.classList.contains('hidden') || document.getElementById('reportTableBody').innerHTML === '') {
-            showToast("Silakan tampilkan data laporan terlebih dahulu sebelum di-export", true);
+        
+        // Validasi: Pastikan data sudah dimunculkan/ditampilkan sebelum di-export
+        if (printArea.classList.contains('hidden')) {
+            showToast("Silakan klik 'Tampilkan' laporan terlebih dahulu!", true);
             return;
         }
 
-        showLoader("Menyiapkan file PDF...");
-
-        // Kloning elemen (Diposisikan di luar viewport agar kalkulasi html2canvas 100% lurus bebas glitch)
+        showLoader("Menghasilkan dokumen PDF...");
+        
+        /* 
+           FIX BUG HALAMAN KOSONG (BLANK PAGE):
+           Melakukan clone (copy) elemen report, menghapus class shadow/hidden, 
+           dan menempelkannya sementara langsung ke <body> dengan posisi absolut 
+           diluar layar agar html2canvas tidak terganggu oleh rule "overflow: hidden" parent-nya.
+        */
         const clone = printArea.cloneNode(true);
-        clone.classList.remove('hidden');
         clone.style.position = 'absolute';
+        clone.style.left = '-9999px'; 
         clone.style.top = '0';
-        clone.style.left = '-9999px';
-        clone.style.width = '800px'; 
-        clone.style.display = 'block';
+        clone.style.width = '1024px'; // Tetapkan lebar agar layout tidak rusak
+        clone.style.backgroundColor = 'white';
+        clone.style.color = 'black';
+        clone.classList.remove('hidden', 'shadow', 'border', 'rounded-xl');
         document.body.appendChild(clone);
 
-        const monthSelect = document.getElementById('reportMonthSelect').value;
-        const yearSelect = document.getElementById('reportYearSelect').value;
-        const fileName = `Laporan_Fasilitas_Editing_${yearSelect}_${monthSelect}.pdf`;
+        const month = document.getElementById('reportMonthSelect').value;
+        const year = document.getElementById('reportYearSelect').value;
+        const fileName = `Laporan_Siskomedi_${month}_${year}.pdf`;
 
+        // Konfigurasi html2pdf
         const opt = {
-            margin:       [15, 10, 15, 10], 
+            margin:       0.5,
             filename:     fileName,
             image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { 
-                scale: 2, 
-                useCORS: true,
-                logging: false,
-                scrollX: 0,
-                scrollY: 0
-            },
-            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            html2canvas:  { scale: 2, useCORS: true, windowWidth: 1024 }, 
+            jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
         };
 
+        // Render element clone menjadi PDF
         html2pdf().set(opt).from(clone).save().then(() => {
+            // Hapus elemen clone jika sudah selesai
             document.body.removeChild(clone);
             hideLoader();
-            showToast("Laporan berhasil diunduh sebagai PDF!");
+            showToast("PDF berhasil diunduh!");
         }).catch(err => {
             if(document.body.contains(clone)) document.body.removeChild(clone);
             hideLoader();
-            showToast("Gagal membuat PDF. Coba lagi.", true);
+            showToast("Gagal mengekspor PDF", true);
             console.error(err);
         });
     }
