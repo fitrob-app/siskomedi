@@ -1520,128 +1520,123 @@
     // ==========================================
     // EXPORT PDF DIRECT (Bypass Scroll/Offset Bug)
     // ==========================================
- function exportToPDF() {
-        const printArea = document.getElementById('reportPrintArea');
-        if(printArea.classList.contains('hidden') || document.getElementById('reportTableBody').innerHTML === '') {
-            showToast("Silakan tampilkan data laporan terlebih dahulu sebelum di-export", true);
-            return;
-        }
+async function exportToPDF() {
 
-        showLoader("Menyiapkan file PDF...");
+    const reportArea = document.getElementById("reportPrintArea");
 
-        const savedScrollX = window.scrollX;
-        const savedScrollY = window.scrollY;
-        window.scrollTo(0, 0); // Loncat ke koordinat awal agar tangkapan tidak terpotong kiri/atas
-
-        // Bersihkan mesin rendering PDF lama jika ada
-        let renderContainer = document.getElementById('pdfRenderEngine');
-        if (renderContainer) {
-            renderContainer.remove();
-        }
-
-        renderContainer = document.createElement('div');
-        renderContainer.id = 'pdfRenderEngine';
-        renderContainer.style.position = 'absolute';
-        renderContainer.style.left = '0';
-        renderContainer.style.top = '0';
-        renderContainer.style.width = '794px'; // Kunci lebar mutlak portrait A4 (96 DPI)
-        renderContainer.style.backgroundColor = '#ffffff';
-        renderContainer.style.zIndex = '99999'; // Pastikan di layer teratas di bawah loading screen
-        renderContainer.style.boxSizing = 'border-box';
-        renderContainer.style.padding = '30px 40px'; // Margin kertas dalam
-
-        // Salin isi laporan ke dalam engine render baru
-        renderContainer.innerHTML = printArea.innerHTML;
-
-        const styleSheet = document.createElement('style');
-        styleSheet.innerText = `
-            #pdfRenderEngine {
-                font-family: 'Segoe UI', Arial, sans-serif !important;
-                color: #000000 !important;
-            }
-            #pdfRenderEngine .text-center { text-align: center !important; }
-            #pdfRenderEngine .border-b { border-bottom: 2px solid #333 !important; margin-bottom: 20px !important; padding-bottom: 10px !important; }
-            #pdfRenderEngine h2 { font-size: 18px !important; text-transform: uppercase !important; margin: 0 0 5px 0 !important; }
-            #pdfRenderEngine p { margin: 0 0 5px 0 !important; color: #444 !important; }
-            #pdfRenderEngine table {
-                width: 100% !important;
-                border-collapse: collapse !important;
-                margin-top: 15px !important;
-                font-size: 10px !important;
-                table-layout: fixed !important; /* Paksa layout tabel statis agar tidak melebar */
-            }
-            #pdfRenderEngine th, #pdfRenderEngine td {
-                border: 1px solid #777777 !important;
-                padding: 6px 8px !important;
-                text-align: left !important;
-                vertical-align: top !important;
-                word-wrap: break-word !important;
-                overflow-wrap: break-word !important;
-                white-space: normal !important; /* Biarkan teks membungkus ke bawah */
-            }
-            #pdfRenderEngine th { background-color: #f3f4f6 !important; font-weight: bold !important; }
-            #pdfRenderEngine .mt-12 { margin-top: 50px !important; }
-            #pdfRenderEngine .flex { display: flex !important; }
-            #pdfRenderEngine .justify-end { justify-content: flex-end !important; }
-            #pdfRenderEngine .mb-16 { margin-bottom: 80px !important; }
-            #pdfRenderEngine .border-t { border-top: 1px solid #000000 !important; }
-            #pdfRenderEngine .pt-2 { padding-top: 5px !important; }
-            #pdfRenderEngine .font-bold { font-weight: bold !important; }
-            #pdfRenderEngine .min-w-200 { min-width: 200px !important; }
-            #pdfRenderEngine b { font-weight: bold !important; }
-            #pdfRenderEngine .italic { font-style: italic !important; }
-            
-            /* Pembagian persentase kolom untuk ukuran Portrait A4 */
-            #pdfRenderEngine th:nth-child(1), #pdfRenderEngine td:nth-child(1) { width: 14% !important; } /* Tgl/Waktu */
-            #pdfRenderEngine th:nth-child(2), #pdfRenderEngine td:nth-child(2) { width: 14% !important; } /* Komputer */
-            #pdfRenderEngine th:nth-child(3), #pdfRenderEngine td:nth-child(3) { width: 14% !important; } /* User (NIP) */
-            #pdfRenderEngine th:nth-child(4), #pdfRenderEngine td:nth-child(4) { width: 26% !important; } /* Acara */
-            #pdfRenderEngine th:nth-child(5), #pdfRenderEngine td:nth-child(5) { width: 10% !important; } /* Durasi */
-            #pdfRenderEngine th:nth-child(6), #pdfRenderEngine td:nth-child(6) { width: 22% !important; } /* Keterangan */
-        `;
-        renderContainer.appendChild(styleSheet);
-        document.body.appendChild(renderContainer);
-
-        const monthSelect = document.getElementById('reportMonthSelect').value;
-        const yearSelect = document.getElementById('reportYearSelect').value;
-        const fileName = `Laporan_Fasilitas_Editing_${yearSelect}_${monthSelect}.pdf`;
-
-        const opt = {
-            margin:       [10, 10, 10, 10], // Margin aman atas-bawah-kiri-kanan (mm)
-            filename:     fileName,
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { 
-                scale: 2, 
-                useCORS: true,
-                logging: false,
-                scrollX: 0,
-                scrollY: 0,
-                windowWidth: 794 // Kunci kalkulasi lebar canvas di resolusi optimal
-            },
-            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' } // Orientasi Tegak
-        };
-
-        setTimeout(() => {
-            html2pdf().set(opt).from(renderContainer).save().then(() => {
-                // Bersihkan DOM Container Sementara
-                if(document.body.contains(renderContainer)) {
-                    document.body.removeChild(renderContainer);
-                }
-                // Kembalikan posisi scroll pengguna ke tempat awal
-                window.scrollTo(savedScrollX, savedScrollY);
-                hideLoader();
-                showToast("Laporan berhasil diunduh sebagai PDF!");
-            }).catch(err => {
-                if(document.body.contains(renderContainer)) {
-                    document.body.removeChild(renderContainer);
-                }
-                window.scrollTo(savedScrollX, savedScrollY);
-                hideLoader();
-                showToast("Gagal membuat PDF. Coba lagi.", true);
-                console.error(err);
-            });
-        }, 400); // Delay jeda aman render DOM browser
+    if (!reportArea || reportArea.classList.contains("hidden")) {
+        showToast("Silakan generate laporan terlebih dahulu.", true);
+        return;
     }
+
+    showLoader("Membuat PDF...");
+
+    try {
+
+        // Clone agar tampilan aplikasi tidak berubah
+        const clone = reportArea.cloneNode(true);
+
+        clone.style.display = "block";
+        clone.style.position = "fixed";
+        clone.style.left = "0";
+        clone.style.top = "0";
+        clone.style.width = "794px";      // Lebar A4
+        clone.style.background = "#fff";
+        clone.style.padding = "25px";
+        clone.style.zIndex = "999999";
+        clone.style.boxSizing = "border-box";
+
+        document.body.appendChild(clone);
+
+        // Style khusus PDF
+        const style = document.createElement("style");
+        style.innerHTML = `
+            table{
+                width:100%;
+                border-collapse:collapse;
+                font-size:10px;
+            }
+
+            th,td{
+                border:1px solid #666;
+                padding:5px;
+                vertical-align:top;
+                word-break:break-word;
+            }
+
+            th{
+                background:#f3f4f6;
+                font-weight:bold;
+            }
+
+            thead{
+                display:table-header-group;
+            }
+
+            tr{
+                page-break-inside:avoid;
+            }
+        `;
+
+        clone.appendChild(style);
+
+        await html2pdf()
+            .set({
+
+                margin:8,
+
+                filename:
+                    "Laporan_" +
+                    document.getElementById("reportMonthSelect").value +
+                    "_" +
+                    document.getElementById("reportYearSelect").value +
+                    ".pdf",
+
+                image:{
+                    type:"jpeg",
+                    quality:1
+                },
+
+                html2canvas:{
+                    scale:2,
+                    useCORS:true,
+                    allowTaint:true,
+                    backgroundColor:"#ffffff",
+                    scrollX:0,
+                    scrollY:0
+                },
+
+                jsPDF:{
+                    unit:"mm",
+                    format:"a4",
+                    orientation:"portrait",
+                    compress:true
+                },
+
+                pagebreak:{
+                    mode:["css","legacy","avoid-all"]
+                }
+
+            })
+            .from(clone)
+            .save();
+
+        document.body.removeChild(clone);
+
+        hideLoader();
+        showToast("PDF berhasil dibuat.");
+
+    } catch(err){
+
+        console.error(err);
+
+        hideLoader();
+
+        showToast("Gagal membuat PDF.", true);
+
+    }
+
+}
 </script>
 </body>
 </html>
